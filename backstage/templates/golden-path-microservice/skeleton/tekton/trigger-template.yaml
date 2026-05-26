@@ -1,0 +1,42 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: ${{ values.service_name }}-trigger
+  namespace: tekton-pipelines
+  labels:
+    app.kubernetes.io/name: ${{ values.service_name }}-trigger
+    team: ${{ values.team_name }}
+    cost-center: CC-${{ values.team_name | replace("-", "") | upper }}-001
+    environment: dev
+    owner: ${{ values.team_name }}
+spec:
+  params:
+    - name: repo-url
+    - name: revision
+    - name: commit-sha
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1beta1
+      kind: PipelineRun
+      metadata:
+        generateName: ${{ values.service_name }}-build-
+      spec:
+        pipelineRef:
+          name: ${{ values.service_name }}-build
+        workspaces:
+          - name: source
+            volumeClaimTemplate:
+              spec:
+                accessModes: ["ReadWriteOnce"]
+                resources:
+                  requests:
+                    storage: 1Gi
+          - name: dockerconfig
+            secret:
+              secretName: docker-config
+        params:
+          - name: repo-url
+            value: $(tt.params.repo-url)
+          - name: revision
+            value: $(tt.params.revision)
+          - name: image-name
+            value: "123456789012.dkr.ecr.me-central-1.amazonaws.com/${{ values.service_name }}:$(tt.params.commit-sha)"

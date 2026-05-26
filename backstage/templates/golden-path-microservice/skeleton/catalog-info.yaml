@@ -1,0 +1,19 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ${{ values.service_name }}
+  description: ${{ values.service_name }} microservice
+  annotations:
+    backstage.io/techdocs-ref: dir:./docs
+    tekton.dev/pipeline: microservice-build-and-deploy
+    github.com/project-slug: ${{ values.team_name }}/${{ values.service_name }}
+  tags:
+    - microservice
+    - aws
+    - ${{ values.team_name }}
+spec:
+  type: service
+  owner: ${{ values.team_name }}
+  lifecycle: experimental
+  system: platform-services
+  dependsOn: []

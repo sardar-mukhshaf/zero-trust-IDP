@@ -1,0 +1,74 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: opa-gatekeeper-scan
+  namespace: tekton-pipelines
+  labels:
+    app.kubernetes.io/name: opa-gatekeeper-scan
+    team: platform
+    cost-center: CC-PLATFORM-000
+    environment: production
+    owner: platform-team
+spec:
+  description: >-
+    Scan Kubernetes manifests and Terraform plans with OPA/conftest.
+  workspaces:
+    - name: source
+  params:
+    - name: policy-dir
+      type: string
+      default: policies/opa
+    - name: manifests-dir
+      type: string
+      default: kubernetes
+    - name: tfplan-file
+      type: string
+      default: tfplan.json
+  steps:
+    - name: conftest-k8s
+      image: openpolicyagent/conftest:v0.49.0@sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
+      securityContext:
+        runAsNonRoot: true
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop:
+            - ALL
+      script: |
+        #!/bin/sh
+        set -euo pipefail
+        if [ -d "$(workspaces.source.path)/$(params.manifests-dir)" ]; then
+          conftest test $(workspaces.source.path)/$(params.manifests-dir)/**/*.yaml \
+            --policy $(workspaces.source.path)/$(params.policy-dir)/k8s
+        fi
+      resources:
+        limits:
+          cpu: 500m
+          memory: 256Mi
+        requests:
+          cpu: 100m
+          memory: 128Mi
+    - name: conftest-terraform
+      image: openpolicyagent/conftest:v0.49.0@sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
+      securityContext:
+        runAsNonRoot: true
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop:
+            - ALL
+      script: |
+        #!/bin/sh
+        set -euo pipefail
+        if [ -f "$(workspaces.source.path)/$(params.tfplan-file)" ]; then
+          conftest test $(workspaces.source.path)/$(params.tfplan-file) \
+            --policy $(workspaces.source.path)/$(params.policy-dir)/terraform \
+            --input json
+        fi
+      resources:
+        limits:
+          cpu: 500m
+          memory: 256Mi
+        requests:
+          cpu: 100m
+          memory: 128Mi

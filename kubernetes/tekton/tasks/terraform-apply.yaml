@@ -1,0 +1,42 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: terraform-apply
+  namespace: tekton-pipelines
+  labels:
+    app.kubernetes.io/name: terraform-apply
+    team: platform
+    cost-center: CC-PLATFORM-000
+    environment: production
+    owner: platform-team
+spec:
+  description: >-
+    Run terraform apply with a previously generated plan file.
+  workspaces:
+    - name: source
+  params:
+    - name: workspace-dir
+      type: string
+      default: .
+  steps:
+    - name: terraform-apply
+      image: hashicorp/terraform:1.7.0@sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
+      securityContext:
+        runAsNonRoot: true
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop:
+            - ALL
+      script: |
+        #!/bin/sh
+        set -euo pipefail
+        cd $(workspaces.source.path)/$(params.workspace-dir)
+        terraform apply -auto-approve tfplan
+      resources:
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+        requests:
+          cpu: 250m
+          memory: 256Mi

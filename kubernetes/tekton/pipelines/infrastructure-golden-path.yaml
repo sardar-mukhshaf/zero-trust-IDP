@@ -1,0 +1,121 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: infrastructure-golden-path
+  namespace: tekton-pipelines
+  labels:
+    app.kubernetes.io/name: infrastructure-golden-path
+    team: platform
+    cost-center: CC-PLATFORM-000
+    environment: production
+    owner: platform-team
+spec:
+  description: >-
+    Provision infrastructure via Terraform with OPA scanning and manual approval.
+  workspaces:
+    - name: shared-workspace
+  params:
+    - name: repo-url
+      type: string
+    - name: revision
+      type: string
+      default: main
+    - name: workspace-dir
+      type: string
+      default: terraform
+    - name: environment
+      type: string
+    - name: team-name
+      type: string
+  tasks:
+    - name: git-clone
+      taskRef:
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: shared-workspace
+      params:
+        - name: url
+          value: $(params.repo-url)
+        - name: revision
+          value: $(params.revision)
+    - name: terraform-fmt-check
+      runAfter:
+        - git-clone
+      taskSpec:
+        steps:
+          - name: fmt
+            image: hashicorp/terraform:1.7.0
+            script: |
+              cd $(workspaces.source.path)/$(params.workspace-dir)
+              terraform fmt -check -recursive
+        workspaces:
+          - name: source
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+    - name: opa-terraform-scan
+      taskRef:
+        name: opa-gatekeeper-scan
+      runAfter:
+        - terraform-fmt-check
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+    - name: terraform-plan
+      taskRef:
+        name: terraform-plan
+      runAfter:
+        - opa-terraform-scan
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+      params:
+        - name: workspace-dir
+          value: $(params.workspace-dir)
+        - name: environment
+          value: $(params.environment)
+    - name: manual-approval
+      runAfter:
+        - terraform-plan
+      taskSpec:
+        steps:
+          - name: wait
+            image: busybox:1.36@sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
+            script: |
+              echo "Waiting for manual approval..."
+              sleep 300
+      timeout: 1h0m0s
+    - name: terraform-apply
+      taskRef:
+        name: terraform-apply
+      runAfter:
+        - manual-approval
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+      params:
+        - name: workspace-dir
+          value: $(params.workspace-dir)
+    - name: update-backstage-catalog
+      runAfter:
+        - terraform-apply
+      taskSpec:
+        steps:
+          - name: register
+            image: curlimages/curl:8.5.0
+            script: |
+              curl -X POST https://portal.$(params.team-name)/api/catalog/locations \
+                -H "Content-Type: application/json" \
+                -d '{"type":"url","target":"$(params.repo-url)/blob/main/catalog-info.yaml"}'
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+  finally:
+    - name: notify
+      taskSpec:
+        steps:
+          - name: notify
+            image: curlimages/curl:8.5.0
+            script: |
+              echo "Infrastructure pipeline $(context.pipelineRun.name) completed"

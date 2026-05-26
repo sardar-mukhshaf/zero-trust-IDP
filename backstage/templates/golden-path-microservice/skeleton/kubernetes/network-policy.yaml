@@ -1,0 +1,37 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: ${{ values.team_name }}
+  labels:
+    app.kubernetes.io/name: ${{ values.service_name }}
+    team: ${{ values.team_name }}
+    cost-center: CC-${{ values.team_name | replace("-", "") | upper }}-001
+    environment: dev
+    owner: ${{ values.team_name }}
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-istio-ingress
+  namespace: ${{ values.team_name }}
+  labels:
+    app.kubernetes.io/name: ${{ values.service_name }}
+    team: ${{ values.team_name }}
+    cost-center: CC-${{ values.team_name | replace("-", "") | upper }}-001
+    environment: dev
+    owner: ${{ values.team_name }}
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              app.kubernetes.io/name: istio-system

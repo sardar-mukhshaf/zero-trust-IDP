@@ -1,0 +1,121 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: golden-path-microservice
+  title: Golden Path Microservice
+  description: >-
+    Scaffold a production-ready microservice with RDS, SQS, S3, IRSA,
+    Istio sidecar, and Tekton CI/CD pipeline.
+  tags:
+    - microservice
+    - aws
+    - kubernetes
+    - terraform
+spec:
+  owner: platform-team
+  type: service
+
+  parameters:
+    - title: Service Information
+      required:
+        - service_name
+        - team_name
+        - owner
+      properties:
+        service_name:
+          title: Service Name
+          type: string
+          pattern: '^[a-z][a-z0-9-]{1,30}$'
+          ui:autofocus: true
+        team_name:
+          title: Team
+          type: string
+          enum:
+            - team-backend
+            - team-frontend
+            - team-data
+            - team-sre
+        owner:
+          title: Owner
+          type: string
+          ui:field: OwnerPicker
+          ui:options:
+            catalogFilter:
+              kind: Group
+    - title: Infrastructure Options
+      properties:
+        db_type:
+          title: Database
+          type: string
+          enum:
+            - none
+            - postgres
+            - mysql
+          default: none
+        queue_type:
+          title: Queue
+          type: string
+          enum:
+            - none
+            - sqs
+            - sns
+          default: none
+        enable_s3:
+          title: Enable S3 Bucket
+          type: boolean
+          default: false
+
+  steps:
+    - id: fetch-template
+      name: Fetch Template
+      action: fetch:template
+      input:
+        url: ./skeleton
+        targetPath: ./
+        values:
+          service_name: ${{ parameters.service_name }}
+          team_name: ${{ parameters.team_name }}
+          owner: ${{ parameters.owner }}
+          db_type: ${{ parameters.db_type }}
+          queue_type: ${{ parameters.queue_type }}
+          enable_s3: ${{ parameters.enable_s3 }}
+
+    - id: publish
+      name: Publish Repository
+      action: publish:github
+      input:
+        allowedHosts: ['github.com']
+        description: >-
+          ${{ parameters.service_name }} - Golden Path Microservice
+        repoUrl: github.com?owner=${{ parameters.team_name }}&repo=${{ parameters.service_name }}
+        defaultBranch: main
+
+    - id: register
+      name: Register Catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+    - id: trigger-tekton
+      name: Trigger Infrastructure Pipeline
+      action: trigger:tekton
+      input:
+        pipelineName: infrastructure-golden-path
+        namespace: tekton-pipelines
+        params:
+          repo-url: ${{ steps.publish.output.remoteUrl }}
+          team-name: ${{ parameters.team_name }}
+          environment: dev
+
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps.publish.output.remoteUrl }}
+      - title: Catalog Page
+        icon: catalog
+        entityRef: ${{ steps.register.output.entityRef }}
+    text:
+      - title: Tekton Pipeline
+        content: >-
+          Infrastructure pipeline triggered for ${{ parameters.service_name }}.

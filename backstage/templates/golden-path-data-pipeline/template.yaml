@@ -1,0 +1,88 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: golden-path-data-pipeline
+  title: Golden Path Data Pipeline
+  description: >-
+    Scaffold an AWS Glue/EMR data pipeline with S3 staging, IAM roles,
+    and Tekton orchestration.
+  tags:
+    - data
+    - pipeline
+    - aws
+    - glue
+spec:
+  owner: platform-team
+  type: resource
+
+  parameters:
+    - title: Pipeline Information
+      required:
+        - pipeline_name
+        - team_name
+        - owner
+      properties:
+        pipeline_name:
+          title: Pipeline Name
+          type: string
+          pattern: '^[a-z][a-z0-9-]{1,30}$'
+        team_name:
+          title: Team
+          type: string
+          enum:
+            - team-data
+            - team-backend
+        owner:
+          title: Owner
+          type: string
+          ui:field: OwnerPicker
+    - title: Infrastructure
+      properties:
+        engine:
+          title: Processing Engine
+          type: string
+          enum:
+            - glue
+            - emr
+          default: glue
+        schedule:
+          title: Schedule (cron)
+          type: string
+          default: "0 2 * * *"
+
+  steps:
+    - id: fetch-template
+      name: Fetch Template
+      action: fetch:template
+      input:
+        url: ./skeleton
+        targetPath: ./
+        values:
+          pipeline_name: ${{ parameters.pipeline_name }}
+          team_name: ${{ parameters.team_name }}
+          owner: ${{ parameters.owner }}
+          engine: ${{ parameters.engine }}
+          schedule: ${{ parameters.schedule }}
+
+    - id: publish
+      name: Publish Repository
+      action: publish:github
+      input:
+        allowedHosts: ['github.com']
+        description: ${{ parameters.pipeline_name }} - Data Pipeline
+        repoUrl: github.com?owner=${{ parameters.team_name }}&repo=${{ parameters.pipeline_name }}
+
+    - id: register
+      name: Register Catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps.publish.output.remoteUrl }}
+      - title: Catalog Page
+        icon: catalog
+        entityRef: ${{ steps.register.output.entityRef }}

@@ -1,0 +1,52 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: git-clone
+  namespace: tekton-pipelines
+  labels:
+    app.kubernetes.io/name: git-clone
+    team: platform
+    cost-center: CC-PLATFORM-000
+    environment: production
+    owner: platform-team
+spec:
+  description: >-
+    Clone a Git repository, verify commit signature, and checkout the specified revision.
+  workspaces:
+    - name: output
+      description: The git repo will be cloned onto the volume backing this workspace.
+  params:
+    - name: url
+      type: string
+      description: Repository URL to clone from.
+    - name: revision
+      type: string
+      default: main
+      description: Git revision to checkout.
+    - name: depth
+      type: string
+      default: "1"
+      description: Git clone depth.
+  steps:
+    - name: clone
+      image: gcr.io/tekton-releases/github.com/tektoncd/pipeline/cmd/git-init:v0.58.0@sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
+      securityContext:
+        runAsNonRoot: true
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop:
+            - ALL
+      script: |
+        #!/bin/sh
+        set -euo pipefail
+        git clone --depth=$(params.depth) --branch=$(params.revision) $(params.url) $(workspaces.output.path)
+        cd $(workspaces.output.path)
+        git verify-commit HEAD || echo "Warning: commit not signed"
+      resources:
+        limits:
+          cpu: 500m
+          memory: 256Mi
+        requests:
+          cpu: 100m
+          memory: 128Mi

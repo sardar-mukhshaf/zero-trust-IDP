@@ -1,0 +1,68 @@
+app:
+  baseUrl: https://portal.${DOMAIN_NAME}
+  title: Zero-Trust IDP
+
+backend:
+  baseUrl: https://portal.${DOMAIN_NAME}
+  listen:
+    port: 7007
+  database:
+    client: pg
+    connection:
+      host: ${DB_HOST}
+      port: ${DB_PORT}
+      user: ${DB_USER}
+      password: ${DB_PASSWORD}
+      database: ${DB_NAME}
+  reading:
+    allow:
+      - host: '*.${DOMAIN_NAME}'
+
+auth:
+  environment: production
+  providers:
+    oidc:
+      production:
+        clientId: backstage
+        clientSecret: ${OIDC_CLIENT_SECRET}
+        metadataUrl: ${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/.well-known/openid-configuration
+        scope: 'openid profile email groups'
+        signIn:
+          resolvers:
+            - resolver: preferredUsernameMatchingUserEntityName
+
+catalog:
+  locations:
+    - type: url
+      target: https://github.com/example-org/backstage-templates/blob/main/catalog-info.yaml
+  rules:
+    - allow: [Component, System, API, Resource, Location]
+
+techdocs:
+  builder: 'external'
+  generator:
+    runIn: 'local'
+  publisher:
+    type: 'awsS3'
+    awsS3:
+      bucketName: ${TECHDOCS_BUCKET}
+      region: ${AWS_REGION}
+      credentials:
+        type: IAM
+
+scaffolder:
+  defaultAuthor:
+    name: Platform Bot
+    email: platform@${DOMAIN_NAME}
+
+kubernetes:
+  serviceLocatorMethod:
+    type: multiTenant
+  clusterLocatorMethods:
+    - type: config
+      clusters:
+        - url: ${K8S_API_URL}
+          name: ztidp
+          authProvider: serviceAccount
+          skipTLSVerify: false
+          skipMetricsLookup: false

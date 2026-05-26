@@ -1,0 +1,72 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: ${{ values.service_name }}-build
+  namespace: tekton-pipelines
+  labels:
+    app.kubernetes.io/name: ${{ values.service_name }}-build
+    team: ${{ values.team_name }}
+    cost-center: CC-${{ values.team_name | replace("-", "") | upper }}-001
+    environment: dev
+    owner: ${{ values.team_name }}
+spec:
+  workspaces:
+    - name: source
+    - name: dockerconfig
+  params:
+    - name: repo-url
+      type: string
+    - name: revision
+      type: string
+      default: main
+    - name: image-name
+      type: string
+    - name: namespace
+      type: string
+      default: ${{ values.team_name }}
+  tasks:
+    - name: git-clone
+      taskRef:
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: source
+      params:
+        - name: url
+          value: $(params.repo-url)
+        - name: revision
+          value: $(params.revision)
+    - name: kaniko-build
+      taskRef:
+        name: kaniko-build
+      runAfter:
+        - git-clone
+      workspaces:
+        - name: source
+          workspace: source
+        - name: dockerconfig
+          workspace: dockerconfig
+      params:
+        - name: image-name
+          value: $(params.image-name)
+    - name: opa-scan
+      taskRef:
+        name: opa-gatekeeper-scan
+      runAfter:
+        - kaniko-build
+      workspaces:
+        - name: source
+          workspace: source
+    - name: deploy
+      taskRef:
+        name: kubernetes-actions
+        kind: ClusterTask
+      runAfter:
+        - opa-scan
+      params:
+        - name: script
+          value: |
+            kubectl apply -f $(workspaces.source.path)/kubernetes/ -n $(params.namespace)
+      workspaces:
+        - name: manifest-dir
+          workspace: source

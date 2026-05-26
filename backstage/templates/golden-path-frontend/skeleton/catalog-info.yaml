@@ -1,0 +1,17 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ${{ values.app_name }}
+  description: ${{ values.app_name }} frontend application
+  annotations:
+    backstage.io/techdocs-ref: dir:./docs
+    tekton.dev/pipeline: microservice-build-and-deploy
+  tags:
+    - frontend
+    - react
+    - ${{ values.team_name }}
+spec:
+  type: website
+  owner: ${{ values.team_name }}
+  lifecycle: experimental
+  system: web-platform

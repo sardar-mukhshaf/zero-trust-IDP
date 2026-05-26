@@ -1,0 +1,73 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: golden-path-frontend
+  title: Golden Path Frontend
+  description: >-
+    Scaffold a React frontend application served by nginx with Istio sidecar,
+    built and deployed via Tekton.
+  tags:
+    - frontend
+    - react
+    - nginx
+    - kubernetes
+spec:
+  owner: platform-team
+  type: service
+
+  parameters:
+    - title: Application Information
+      required:
+        - app_name
+        - team_name
+        - owner
+      properties:
+        app_name:
+          title: Application Name
+          type: string
+          pattern: '^[a-z][a-z0-9-]{1,30}$'
+        team_name:
+          title: Team
+          type: string
+          enum:
+            - team-frontend
+            - team-backend
+        owner:
+          title: Owner
+          type: string
+          ui:field: OwnerPicker
+
+  steps:
+    - id: fetch-template
+      name: Fetch Template
+      action: fetch:template
+      input:
+        url: ./skeleton
+        targetPath: ./
+        values:
+          app_name: ${{ parameters.app_name }}
+          team_name: ${{ parameters.team_name }}
+          owner: ${{ parameters.owner }}
+
+    - id: publish
+      name: Publish Repository
+      action: publish:github
+      input:
+        allowedHosts: ['github.com']
+        description: ${{ parameters.app_name }} - React Frontend
+        repoUrl: github.com?owner=${{ parameters.team_name }}&repo=${{ parameters.app_name }}
+
+    - id: register
+      name: Register Catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps.publish.output.remoteUrl }}
+      - title: Catalog Page
+        icon: catalog
+        entityRef: ${{ steps.register.output.entityRef }}

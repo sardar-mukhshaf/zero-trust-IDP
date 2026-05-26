@@ -1,0 +1,55 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: sonarqube-scan
+  namespace: tekton-pipelines
+  labels:
+    app.kubernetes.io/name: sonarqube-scan
+    team: platform
+    cost-center: CC-PLATFORM-000
+    environment: production
+    owner: platform-team
+spec:
+  description: >-
+    Run SonarQube code quality analysis.
+  workspaces:
+    - name: source
+  params:
+    - name: project-key
+      type: string
+    - name: sonar-host
+      type: string
+      default: https://sonarqube.idp.example.com
+    - name: token-secret
+      type: string
+      default: sonarqube-token
+  steps:
+    - name: sonar-scan
+      image: sonarsource/sonar-scanner-cli:5.0@sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890
+      securityContext:
+        runAsNonRoot: true
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop:
+            - ALL
+      env:
+        - name: SONAR_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: $(params.token-secret)
+              key: token
+      script: |
+        #!/bin/sh
+        set -euo pipefail
+        sonar-scanner \
+          -Dsonar.projectKey=$(params.project-key) \
+          -Dsonar.sources=$(workspaces.source.path) \
+          -Dsonar.host.url=$(params.sonar-host)
+      resources:
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+        requests:
+          cpu: 250m
+          memory: 256Mi

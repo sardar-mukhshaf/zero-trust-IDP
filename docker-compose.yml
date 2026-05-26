@@ -1,0 +1,90 @@
+version: "3.8"
+
+services:
+  backstage:
+    build:
+      context: ./backstage
+      dockerfile: packages/backend/Dockerfile
+    ports:
+      - "7007:7007"
+    environment:
+      - NODE_ENV=development
+      - APP_CONFIG_app_baseUrl=http://localhost:7007
+      - APP_CONFIG_backend_baseUrl=http://localhost:7007
+      - APP_CONFIG_backend_database_connection_host=postgres
+      - APP_CONFIG_backend_database_connection_port=5432
+      - APP_CONFIG_backend_database_connection_user=backstage
+      - APP_CONFIG_backend_database_connection_password=backstage
+      - APP_CONFIG_backend_database_connection_database=backstage
+      - APP_CONFIG_techdocs_publisher_type=awsS3
+      - APP_CONFIG_techdocs_publisher_awsS3_bucketName=techdocs
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-me-central-1}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - backstage
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=backstage
+      - POSTGRES_PASSWORD=backstage
+      - POSTGRES_DB=backstage
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U backstage"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backstage
+
+  minio:
+    image: minio/minio:RELEASE.2024-01-01T00-00-00Z
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backstage
+
+  createbuckets:
+    image: minio/mc:RELEASE.2024-01-01T00-00-00Z
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin;
+      /usr/bin/mc mb myminio/techdocs;
+      /usr/bin/mc policy set public myminio/techdocs;
+      exit 0;
+      "
+    networks:
+      - backstage
+
+volumes:
+  postgres_data:
+  minio_data:
+
+networks:
+  backstage:
+    driver: bridge

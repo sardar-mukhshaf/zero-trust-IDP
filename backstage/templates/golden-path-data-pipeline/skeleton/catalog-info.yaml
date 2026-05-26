@@ -1,0 +1,17 @@
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: ${{ values.pipeline_name }}
+  description: ${{ values.pipeline_name }} data pipeline
+  annotations:
+    backstage.io/techdocs-ref: dir:./docs
+  tags:
+    - data-pipeline
+    - ${{ values.engine }}
+    - ${{ values.team_name }}
+spec:
+  type: data-pipeline
+  owner: ${{ values.team_name }}
+  lifecycle: experimental
+  system: data-platform
+  dependsOn: []

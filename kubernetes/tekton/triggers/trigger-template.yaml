@@ -1,0 +1,42 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: microservice-build-trigger
+  namespace: tekton-pipelines
+  labels:
+    app.kubernetes.io/name: microservice-build-trigger
+    team: platform
+    cost-center: CC-PLATFORM-000
+    environment: production
+    owner: platform-team
+spec:
+  params:
+    - name: repo-url
+    - name: revision
+    - name: commit-sha
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1beta1
+      kind: PipelineRun
+      metadata:
+        generateName: microservice-build-and-deploy-
+      spec:
+        pipelineRef:
+          name: microservice-build-and-deploy
+        workspaces:
+          - name: shared-workspace
+            volumeClaimTemplate:
+              spec:
+                accessModes: ["ReadWriteOnce"]
+                resources:
+                  requests:
+                    storage: 1Gi
+          - name: dockerconfig
+            secret:
+              secretName: docker-config
+        params:
+          - name: repo-url
+            value: $(tt.params.repo-url)
+          - name: revision
+            value: $(tt.params.revision)
+          - name: image-name
+            value: "123456789012.dkr.ecr.me-central-1.amazonaws.com/$(tt.params.repo-url):$(tt.params.commit-sha)"

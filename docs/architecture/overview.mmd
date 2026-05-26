@@ -1,0 +1,54 @@
+flowchart TB
+    subgraph Developer["Developer"]
+        A[Browser]
+    end
+
+    subgraph Portal["IDP Portal Layer"]
+        B[Backstage.io<br/>React Frontend]
+        C[Keycloak SSO<br/>OIDC Provider]
+    end
+
+    subgraph Mesh["Service Mesh (Istio)"]
+        D[Istio Ingress Gateway<br/>mTLS Termination]
+        E[PeerAuthentication<br/>STRICT Mesh-Wide]
+        F[AuthorizationPolicy<br/>Deny-All Default]
+    end
+
+    subgraph Control["Control Plane"]
+        G[Tekton Pipelines<br/>+ Triggers]
+        H[OPA Gatekeeper<br/>Policy Engine]
+        I[cert-manager<br/>+ SPIFFE/SPIRE]
+    end
+
+    subgraph Factory["Golden Path Factory"]
+        J[Terraform Modules<br/>Namespace / RDS / SQS / S3 / IRSA]
+    end
+
+    subgraph Workloads["Workloads"]
+        K[(RDS PostgreSQL)]
+        L[(S3 Buckets)]
+        M[(SQS Queues)]
+        N[EKS Namespaces]
+    end
+
+    subgraph Observability["Observability & Cost"]
+        O[Kubecost<br/>Team Allocation]
+        P[CloudWatch Logs/Metrics]
+    end
+
+    A -->|HTTPS| D
+    D --> B
+    B -->|OIDC Auth| C
+    B -->|Scaffold Request| G
+    G -->|Git Clone / Plan / Apply| J
+    J --> K
+    J --> L
+    J --> M
+    J --> N
+    N -->|mTLS| E
+    E -->|Enforced by| F
+    F -->|Allowed by| H
+    H -->|Validates| N
+    I -->|Issues Certs| D
+    O -->|Reads Labels| N
+    P -->|Collects| N
