@@ -8,9 +8,9 @@ if [ -z "${TEAM}" ]; then
   exit 1
 fi
 
-PROJECT_NAME="${PROJECT_NAME:-ztidp}"
-ENVIRONMENT="${ENVIRONMENT:-dev}"
-AWS_REGION="${AWS_REGION:-me-central-1}"
+PROJECT_NAME="${PROJECT_NAME}"
+ENVIRONMENT="${ENV}"
+AWS_REGION="${AWS_REGION}"
 
 cd terraform
 

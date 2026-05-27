@@ -1,11 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
-PROJECT_NAME="${PROJECT_NAME:-ztidp}"
-ENVIRONMENT="${ENVIRONMENT:-dev}"
-AWS_REGION="${AWS_REGION:-me-central-1}"
+PROJECT_NAME="${PROJECT_NAME}"
+ENVIRONMENT="${ENV}"
+AWS_REGION="${AWS_REGION}"
 ECR_REPO="${PROJECT_NAME}-${ENVIRONMENT}-backstage"
-IMAGE_TAG="${IMAGE_TAG:-1.22.0}"
+IMAGE_TAG="${TF_VAR_backstage_image_tag}"
 
 cd backstage
 

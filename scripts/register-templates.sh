@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-BACKSTAGE_URL="${BACKSTAGE_URL:-https://portal.idp.example.com}"
+BACKSTAGE_URL="https://portal.${DOMAIN_NAME}"
 TOKEN="${BACKSTAGE_TOKEN:-}"
 
 cd backstage/templates

@@ -1,11 +1,14 @@
 # Zero-Trust Internal Developer Platform Makefile
-# Usage: make <target> [ENV=dev|staging|prod]
+# Usage: make <target>
+
+# Load environment variables from .env file
+ifneq (,$(wildcard ./.env))
+    include .env
+    export $(shell sed 's/=.*//' .env)
+endif
 
 .PHONY: help init plan apply destroy backstage-up test-policies onboard-team pre-flight bootstrap
 
-ENV ?= dev
-PROJECT_NAME := ztidp
-AWS_REGION := me-central-1
 TERRAFORM_DIR := terraform
 BACKSTAGE_DIR := backstage
 
@@ -33,7 +36,6 @@ init: bootstrap ## Initialize Terraform
 plan: init ## Run Terraform plan
 	@echo "Planning infrastructure for environment: $(ENV)..."
 	cd $(TERRAFORM_DIR) && terraform plan \
-		-var-file="environments/$(ENV)/terraform.tfvars" \
 		-out="$(ENV).tfplan"
 
 apply: plan ## Apply Terraform changes
@@ -43,8 +45,7 @@ apply: plan ## Apply Terraform changes
 destroy: init ## Destroy infrastructure (DANGER)
 	@echo "WARNING: This will destroy all resources in $(ENV)!"
 	@read -p "Are you sure? [y/N] " confirm && [ "$$confirm" = "y" ]
-	cd $(TERRAFORM_DIR) && terraform destroy \
-		-var-file="environments/$(ENV)/terraform.tfvars"
+	cd $(TERRAFORM_DIR) && terraform destroy
 
 backstage-up: ## Build and deploy Backstage to ECR
 	@echo "Building and deploying Backstage..."

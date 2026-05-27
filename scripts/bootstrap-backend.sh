@@ -1,8 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-PROJECT_NAME="${PROJECT_NAME:-ztidp}"
-AWS_REGION="${AWS_REGION:-me-central-1}"
+PROJECT_NAME="${PROJECT_NAME}"
+AWS_REGION="${AWS_REGION}"
 BUCKET_NAME="${PROJECT_NAME}-terraform-state"
 DYNAMO_TABLE="${PROJECT_NAME}-terraform-locks"
 
