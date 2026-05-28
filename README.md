@@ -1,4 +1,4 @@
-# Zero-Trust Internal Developer Platform (IDP)
+# NEZEN Internal Developer Platform (IDP)
 
 ## 🤔 Explain It Like I'm Five (But Show Me How It Works)
 
