@@ -1,6 +1,5 @@
 # NEZEN Internal Developer Platform (IDP)
 
-## 🤔 Explain It Like I'm Five (But Show Me How It Works)
 
 Imagine you want to build a house (a software application). Normally, you would have to wait weeks for plumbers, electricians, and inspectors (different IT teams) to come and set up your water, electricity, and safety checks before you can even start building. It is slow, frustrating, and involves a lot of paperwork (support tickets).
 
