@@ -39,7 +39,7 @@ You can now focus 100% on writing your application logic. When you save your cod
 
 ## 👩‍💻 The Technical Details
 
-> **What is this?** A production-ready, enterprise-grade Internal Developer Platform built on AWS EKS, Backstage.io, Istio, OPA Gatekeeper, Tekton, and Keycloak. It enables developers at Saudi enterprise scale (Aramco, SABIC, Ma'aden, SDAIA) to self-serve entire environments—from microservice scaffolding to production deployment—without ever touching the AWS Console or `kubectl`.
+> **What is this?** A production-ready, enterprise-grade Internal Developer Platform built on AWS EKS, Backstage.io, Istio, OPA Gatekeeper, Tekton, and Keycloak. It enables developers at Saudi enterprise scale (Aramco, SABIC, Ma'aden, SDAIA) to self-serve entire environments—from microservice scaffolding to production deployment without ever touching the AWS Console or `kubectl`.
 >
 > **Why this exists:** Traditional platform engineering in large conglomerates suffers from ticket-driven infrastructure, shadow IT, inconsistent security postures, and weeks of provisioning delays. This project solves that by codifying Zero-Trust principles into a self-service portal where every resource is provisioned through audited, policy-enforced GitOps pipelines.
 >
@@ -47,7 +47,7 @@ You can now focus 100% on writing your application logic. When you save your cod
 > - **vs. Raw Terraform/CloudFormation:** Full abstraction—developers fill a web form, not HCL. Platform team owns the modules.
 > - **vs. Standard Backstage:** Not just a service catalog. It is a full platform with mTLS mesh, OPA policy enforcement, cost allocation, and SSO-integrated RBAC.
 > - **vs. Generic EKS Blueprints:** Purpose-built for zero-trust with deny-all NetworkPolicies, STRICT Istio mTLS, SPIFFE workload identity, and Secrets Manager CSI (not env vars).
-> - **vs. Jenkins/GitHub Actions:** Tekton runs inside the cluster with IRSA, enabling private endpoint-only access to AWS services without long-lived credentials.
+> - **vs. Jenkins/GitHub Actions:** Tekton runs inside the cluster with IRSA, enabling private endpoint-only access to the AWS services without long-lived credentials.
 > - **vs. Manual Keycloak/Azure AD:** Fully automated realm, groups, mappers, and client provisioning via Terraform. No manual clicking.
 
 ---
